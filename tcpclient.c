@@ -1,6 +1,7 @@
 /* tcp_ client.c */ 
 /* Programmed by Adarsh Sethi */
-/* Sept. 19, 2019 */     
+/* Sept. 19, 2019 */   
+//files were edited using notepad++ and transferred over using WinSCP
 
 #include <stdio.h>          /* for standard I/O functions */
 #include <stdlib.h>         /* for exit */
@@ -10,34 +11,32 @@
 #include <netinet/in.h>     /* for sockaddr_in */
 #include <unistd.h>         /* for close */
 
-#define STRING_SIZE 1024
+#define LINE_SIZE 80
+
+struct packetHeader{ 
+  unsigned short count;
+  unsigned short packetSequenceNumber;
+};
 
 int main(void) {
-
    int sock_client;  /* Socket used by client */
-
    struct sockaddr_in server_addr;  /* Internet address structure that
                                         stores server address */
    struct hostent * server_hp;      /* Structure to store server's IP
                                         address */
-   char server_hostname[STRING_SIZE]; /* Server's hostname */
+   char server_hostname[LINE_SIZE]; /* Server's hostname */
    unsigned short server_port;  /* Port number used by server (remote port) */
 
-   char sentence[STRING_SIZE];  /* send message */
-   char modifiedSentence[STRING_SIZE]; /* receive message */
    unsigned int msg_len;  /* length of message */                      
    int bytes_sent, bytes_recd; /* number of bytes sent or received */
-  
-   FILE * file;
-   int charCount;
-   char ch;
-   int lineCount = 0;
-   char text[STRING_SIZE];
-   FILE *fp;
-   fp = fopen("output.txt","w");
+   FILE *output; // create output file
+   output = fopen("out.txt","w"); //open the output file
+   char line[LINE_SIZE]; // line buffer
+   struct packetHeader packets; // header
+   char inputFile[LINE_SIZE]; // file name to send
+   int totalByteCount = 0; // total bytes received
 
    /* open a socket */
-
    if ((sock_client = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
       perror("Client: can't open stream socket");
       exit(1);
@@ -49,7 +48,6 @@ int main(void) {
             The local address initialization and binding is done automatically
             when the connect function is called later, if the socket has not
             already been bound. */
-
    /* initialize server address information */
 
    printf("Enter hostname of server: ");
@@ -71,44 +69,57 @@ int main(void) {
    server_addr.sin_port = htons(server_port);
 
     /* connect to the server */
- 		
    if (connect(sock_client, (struct sockaddr *) &server_addr, 
                                     sizeof (server_addr)) < 0) {
       perror("Client: can't connect to server");
       close(sock_client);
       exit(1);
    }
-  
-   /* user interface */
-   file = fopen("test2.txt", "r");
-   printf("before while loop\n");
    
+   //Have the user enter in the file name that they would like to transfer
+   printf("Please enter the name of the file to transfer: ");
+   scanf("%s", inputFile);
    
-   while ((ch = fgetc(file)) != EOF){
-	   if(ch == '\n' || ch == '\0'){
-	   lineCount++;
-	}
-    }
-   printf("Total new lines: %i", lineCount);    
-   fclose(file);
-   file = fopen("test2.txt", "r");  
-   fgets(sentence, STRING_SIZE, file);  
-   msg_len = strlen(sentence) + 1;
-   fputs(sentence, fp);
+   //Make the packetHeader for the input file name
+   packets.count = htons(packets.count);
+   packets.packetSequenceNumber = htons(0);
+   msg_len = sizeof(struct packetHeader);
+   
+   //Send the file name that will be transferred
+   bytes_sent = send(sock_client, &packets, msg_len, 0);
+   bytes_sent = send(sock_client, inputFile, strlen(inputFile) + 1, 0);
+   
+   //Get the line from the server and print a message stating how many bytes were received 
+   bytes_recd = recv(sock_client, &packets, sizeof(struct packetHeader), 0);
+   packets.count = ntohs(packets.count);
+   packets.packetSequenceNumber = ntohs(packets.packetSequenceNumber);
+   bytes_recd = recv(sock_client, line, packets.count, 0);
+   totalByteCount = totalByteCount + bytes_recd;
+   printf("Packet %i received with %i data bytes\n", packets.count, packets.packetSequenceNumber);
 
-   /* send message */   
-   bytes_sent = send(sock_client, sentence, msg_len, 0);
-   
-   
-   /* get response from server */
-   bytes_recd = recv(sock_client, modifiedSentence, STRING_SIZE, 0); 
-         
-   printf("\nThe response from server is:\n");
-   printf("%s\n\n", modifiedSentence);
-      
-   /* close the socket */
+   //Continue to get lines until it reaches the end of file packet
+   while(packets.count != 0) {
+     fputs(line, output); 
+     bytes_recd = recv(sock_client, &packets, sizeof(struct packetHeader), 0);
+     packets.count = ntohs(packets.count);
+     packets.packetSequenceNumber = ntohs(packets.packetSequenceNumber);
 
-   fclose(file);
-   fclose(fp);
+     //When the count is equal to 0, we know that it has reached the end of the transmission
+     if(packets.count == 0) {
+       printf("End of Transmission Packet received with sequence number %i with %i data bytes\n", packets.packetSequenceNumber, packets.count);	       
+     }
+	 
+	 //Receive bytes and display packet number and number of bytes
+	 bytes_recd = recv(sock_client, line, packets.count, 0);
+     totalByteCount = totalByteCount + bytes_recd;
+     printf("Packet %i received with %i data bytes\n", packets.packetSequenceNumber, packets.count);
+   }
+
+   //Print the final message with the total values
+   printf("Total data packets received: %i\n", packets.packetSequenceNumber - 1);
+   printf("Total bytes recieved: %i\n", totalByteCount);
+
+   // close the output file and the socket 
+   fclose(output);
    close (sock_client);
 }

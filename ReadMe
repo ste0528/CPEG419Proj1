@@ -1,0 +1,13 @@
+Student's names: Stephen Eaton and Michael Guerrero
+
+Source files:
+	client file:  tcpclient.c 
+	server file:  tcpserver.c
+
+Executable files: 
+	client executable: tcpclient 
+	server executable: tcpserver
+
+Script files: 
+	client script: tcpclientScript.txt
+	server script: tcpserverScript.txt

@@ -9,10 +9,16 @@
 #include <sys/socket.h>     /* for socket, sendto, and recvfrom */
 #include <netinet/in.h>     /* for sockaddr_in */
 #include <unistd.h>         /* for close */
+#include <time.h>           //for srand()
 
 #define STRING_SIZE 1024
-double alr; //ack loss ratio
-double simulateAckLoss(void);
+float alr; //ack loss ratio
+int simulateAckLoss(void);
+
+struct packetHeader {
+  unsigned short count;
+  unsigned short packetSequenceNumber;
+};
 
 int main(void) {
 
@@ -33,6 +39,8 @@ int main(void) {
    char modifiedSentence[STRING_SIZE]; /* receive message */
    unsigned int msg_len;  /* length of message */
    int bytes_sent, bytes_recd; /* number of bytes sent or received */
+
+   srand(time(0));                //seed for rand which is called later in the main
 
    /* open a socket */
 
@@ -99,11 +107,10 @@ int main(void) {
    server_addr.sin_port = htons(server_port);
 
    /* user interface */
-
-   printf("Please input the file name:\n");
-   scanf("%s", &filename);
    printf("Please input the ACK loss ratio:\n");
    scanf("%lf", &alr);
+   printf("Please input the file name:\n");
+   scanf("%s", &filename);
    msg_len = strlen(filename) + 1;
 
    /* send message */
@@ -114,18 +121,22 @@ int main(void) {
    /* get response from server */
 
    printf("Waiting for response from server...\n");
-   bytes_recd = recvfrom(sock_client, modifiedSentence, STRING_SIZE, 0,
-                (struct sockaddr *) 0, (int *) 0);
-   printf("\nThe response from server is:\n");
-   printf("%s\n\n", modifiedSentence);
+   bytes_recd = recvfrom(sock_client, modifiedSentence, STRING_SIZE, 0, (struct sockaddr *) 0, (int *) 0);
+  //  if(packetHeader.count == 0){
+  //    break;
+  //  }
+  //  else{
+     printf("\nThe response from server is:\n");
+     printf("%s\n\n", modifiedSentence);
+  // }
+ }
 
-   /* close the socket */
+ /* close the socket */
 
-   close (sock_client);
-}
+ close (sock_client);
 
-double simulateAckLoss(void){
-  double generatednumber = (rand() % 1);
+int simulateAckLoss(void){
+  float generatednumber = (rand() % 1);
   if(generatednumber < alr){
     return 1;
   }

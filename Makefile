@@ -1,12 +1,12 @@
 CC= /usr/bin/gcc
 
-all:	tcpclient tcpserver
+all:	udpclient udpserver
 
-tcpclient: tcpclient.c;
-	${CC} tcpclient.c -o tcpclient
+udpclient: udpclient.c;
+	${CC} udpclient.c -o udpclient
 
-tcpserver: tcpserver.c;
-	${CC} tcpserver.c -o tcpserver
+udpserver: udpserver.c;
+	${CC} udpserver.c -o udpserver
 
 clean:
-	rm tcpclient tcpserver out.txt 
+	rm udpclient udpserver out.txt

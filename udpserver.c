@@ -16,7 +16,9 @@
    incoming messages from clients. You should change this to a different
    number to prevent conflicts with others in the class. */
 
-#define SERV_UDP_PORT 65100
+#define SERV_UDP_PORT 5100
+double simulateLoss(void);
+double plr; //packet loss ratio number
 
 int main(void) {
 
@@ -35,6 +37,8 @@ int main(void) {
    unsigned int msg_len;  /* length of message */
    int bytes_sent, bytes_recd; /* number of bytes sent or received */
    unsigned int i;  /* temporary loop variable */
+   int timeout; //timeout value
+
 
    /* open a socket */
 
@@ -63,18 +67,19 @@ int main(void) {
    }
 
    /* wait for incoming messages in an indefinite loop */
+   printf("Please enter a timeout value (1-10):\n");
+   scanf("%d", &timeout);
+   printf("Please enter a packet loss ratio (0-1):\n");
+   scanf("%lf", &plr);
 
-   printf("Waiting for incoming messages on port %hu\n\n", 
-                           server_port);
-
+   printf("Waiting for incoming messages on port %hu\n\n", server_port);
    client_addr_len = sizeof (client_addr);
 
    for (;;) {
 
       bytes_recd = recvfrom(sock_server, &sentence, STRING_SIZE, 0,
                      (struct sockaddr *) &client_addr, &client_addr_len);
-      printf("Received Sentence is: %s\n     with length %d\n\n",
-                         sentence, bytes_recd);
+      printf("Received Sentence is: %s\n     with length %d\n\n", sentence, bytes_recd);
 
       /* prepare the message to send */
 
@@ -83,8 +88,20 @@ int main(void) {
          modifiedSentence[i] = toupper (sentence[i]);
 
       /* send message */
- 
-      bytes_sent = sendto(sock_server, modifiedSentence, msg_len, 0,
-               (struct sockaddr*) &client_addr, client_addr_len);
+      if(!simulateLoss()){ //need to parse plr from message sent
+        bytes_sent = sendto(sock_server, modifiedSentence, msg_len, 0,
+                 (struct sockaddr*) &client_addr, client_addr_len);
+      }
    }
+}
+
+//Gotta figure out how to get the alr from the client
+double simulateLoss(void){
+    double generatednumber = (rand() % 1);
+    if(generatednumber < plr){
+      return 1;
+    }
+    else{
+      return 0;
+    }
 }
